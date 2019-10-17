@@ -1,0 +1,9 @@
+node_modules/
+.env
+.DS_STORE
+package-lock.json
+*.swp
+keyfile.json
+listIds.js
+*.temp
+*.tmp
