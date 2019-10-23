@@ -5,21 +5,21 @@ function compressArray(original) {
 
 	// first loop goes over every element
 	for (let i = 0; i < original.length; i++) {
-		let myCount = 0;
+		let count = 0;
 		// loop over every element in the copy and see if it's the same
 		for (let w = 0; w < copy.length; w++) {
 			if (original[i] == copy[w]) {
 				// increase amount of times duplicate is found
-				myCount++;
+				count++;
 				// sets item to undefined
 				delete copy[w];
 			}
 		}
 
-		if (myCount > 0) {
+		if (count > 0) {
 			let a = new Object();
 			a.value = original[i];
-			a.count = myCount;
+			a.count = count;
 			compressed.push(a);
 		}
 	}
