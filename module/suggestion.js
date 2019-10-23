@@ -10,7 +10,7 @@ async function topics(topics, verbose) {
 	}
 }
 
-async function singleTopicRequest(topicName, verbose = true) {
+async function singleTopicRequest(topicName, verbose) {
 	// Set intial variables
 	// -----
 	const data = {
@@ -101,7 +101,7 @@ async function singleTopicRequest(topicName, verbose = true) {
 	data.variables.nonMatchingTopics = nonMatchingTopics;
 
 	if (nonMatchingTopics.length <= 0) {
-		data.error = err;
+		data.error = 'No non-matching topics found';
 		return verboseData(verbose, data, { error: data.error });
 	}
 

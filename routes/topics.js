@@ -10,7 +10,7 @@ router.get('/single/:topicName', async (req, res) => {
 });
 
 router.get('/multiple/', async (req, res) => {
-	const verbose = req.query.verbose ? req.query.verbose === 'true' : 'true';
+	const verbose = req.query.verbose ? req.query.verbose === 'true' : true;
 	const topics = req.query.topics.split(',');
 	const result = await suggestion.topics(topics, verbose);
 	res.status(200).json(result);
