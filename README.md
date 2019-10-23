@@ -14,12 +14,14 @@ Using topic cluster analysis, topic correlations data and topic follow/unfollow 
 -   Add summary for how these suggestions were suggested (good AI practice)
 -   Add exclude lists
 -   Show excludes to the result output
--   Add verbose parameter
-    -   return version for all results or nothing
 -   Add which clusters the multiples come from
 -   More words in the error (which is also not an error)
 -   More words in the reason why no suggestions we returned
--   Put the above into a to-do list and replace with meeting notes
+
+## Done
+
+-   Add verbose parameter
+    -   return version for all results or nothing
 
 ## Setup
 
