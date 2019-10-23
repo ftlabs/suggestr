@@ -6,6 +6,7 @@ Using topic cluster analysis, topic correlations data and topic follow/unfollow 
 
 ## Todo tasks
 
+-   Add git hub PR request template
 -   Add cluster variation
     -   Add parameters for using the 3, 5, 10 and 20 cluster versions
 -   Use ‘non-overlapping’ rather than ‘non-matching’
