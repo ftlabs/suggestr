@@ -23,21 +23,56 @@
   <p>
     We will use those topics to identify new and related content to suggest to the user.
   </p>
+  <p>
+    You can set the <b>verbose</b> query parameter to false if you just want the results without showing the
+    workings.<br />
+    The default value is true
+  </p>
   <h2>
     Example links
   </h2>
+  <p>
+    <b>Single request - No results</b>
+  </p>
   <ul>
     <li>
-      <a href="/topics/Brexit">Get suggestions for the topic <b>Brexit</b></a>
+      <a href="/topics/single/Brexit">Get suggestions for the topic <b>Brexit</b></a>
     </li>
     <li>
-      <a href="/topics/Blockchain">Get suggestions for the topic <b>Blockchain</b></a>
-    </li>
-    <li>
-      <a href="/topics/?topics=Private%20equity,Investment%20Banking,Hedge%20funds">Get suggestions for the topics
-        <b>Private equity, Investment Banking & Hedge funds</b></a>
+      <a href="/topics/single/Brexit?verbose=false">Get suggestions for the topic <b>Brexit</b> (verbose disabled)</a>
     </li>
   </ul>
+  <p>
+    <b>Single request - Some results</b>
+  </p>
+  <ul>
+    <li>
+      <a href="/topics/single/Blockchain">Get suggestions for the topic <b>Blockchain</b></a>
+    </li>
+    <li>
+      <a href="/topics/single/Blockchain?verbose=false">Get suggestions for the topic <b>Blockchain</b> (verbose
+        disabled)</a>
+    </li>
+  </ul>
+  <p>
+    <b>Multiple request - Some results - Topics all in same cluster</b>
+  </p>
+  <ul>
+    <li>
+      <a href="/topics/multiple/?topics=Private%20equity,Investment%20Banking,Hedge%20funds">Get suggestions for the
+        topics
+        <b>Private equity, Investment Banking & Hedge funds</b></a>
+    </li>
+    <li>
+      <a href="/topics/multiple/?topics=Private%20equity,Investment%20Banking,Hedge%20funds?verbose=false">Get
+        suggestions for the
+        topics
+        <b>Private equity, Investment Banking & Hedge funds</b> (verbose disabled)</a>
+    </li>
+  </ul>
+  <p>
+    <b>Multiple request - Some results - Topics in different clusters</b>
+  </p>
 
   <script src="/static/js/script.js"></script>
 </body>

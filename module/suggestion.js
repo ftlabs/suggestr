@@ -1,6 +1,16 @@
-const s3_helper = require('../models/s3');
+const s3_model = require('../models/s3');
+const array_helper = require('../helpers/arrays');
+const object_helper = require('../helpers/objects');
 
-async function topics(topicName) {
+async function topics(topics, verbose) {
+	if (Array.isArray(topics)) {
+		return await multipleTopicRequest(topics, verbose);
+	} else {
+		return await singleTopicRequest(topics, verbose);
+	}
+}
+
+async function singleTopicRequest(topicName, verbose = true) {
 	// Set intial variables
 	// -----
 	const data = {
@@ -16,11 +26,11 @@ async function topics(topicName) {
 	let followUnfollowRatios;
 
 	try {
-		const clusterListDataFile = await s3_helper.getFile(
+		const clusterListDataFile = await s3_model.getFile(
 			'topic_cluster_list.json'
 		);
-		const coocsDataFile = await s3_helper.getFile('allCoocs.json');
-		const followUnfollowRatiosDataFile = await s3_helper.getFile(
+		const coocsDataFile = await s3_model.getFile('allCoocs.json');
+		const followUnfollowRatiosDataFile = await s3_model.getFile(
 			'topic_ratios.json'
 		);
 
@@ -30,9 +40,8 @@ async function topics(topicName) {
 			followUnfollowRatiosDataFile.Body.toString()
 		);
 	} catch (err) {
-		console.log(err);
 		data.error = err;
-		return data;
+		return verboseData(verbose, data, { error: err });
 	}
 
 	// Find topic in list
@@ -42,8 +51,9 @@ async function topics(topicName) {
 	);
 
 	if (foundTopic.length <= 0) {
-		data.error = 'Topic not found';
-		return data;
+		const err = 'Topic not found';
+		data.error = err;
+		return verboseData(verbose, data, { error: err });
 	}
 
 	const foundTopicSingle = foundTopic[0];
@@ -91,8 +101,8 @@ async function topics(topicName) {
 	data.variables.nonMatchingTopics = nonMatchingTopics;
 
 	if (nonMatchingTopics.length <= 0) {
-		data.error = 'All topics match - no outliers found';
-		return data;
+		data.error = err;
+		return verboseData(verbose, data, { error: data.error });
 	}
 
 	// Sort by follow/unfollow ratio
@@ -113,7 +123,112 @@ async function topics(topicName) {
 
 	// Return results
 	// -----
-	return data;
+	return verboseData(verbose, data, { topics: nonMatchingTopicsSortedClean });
+}
+
+async function multipleTopicRequest(topicNames, verbose) {
+	const topicsRequested = topicNames;
+	const data = {
+		type: 'Topic search - multiple',
+		searchToken: topicsRequested,
+		variables: {}
+	};
+
+	if (!topicsRequested) {
+		data.error = 'Topics query parameter not defined';
+		return verboseData(verbose, data, { error: data.error });
+	}
+
+	const topics = topicNames;
+	const topicPromises = [];
+	topics.map((topic) => {
+		new Promise(function(resolve, reject) {
+			topicPromises.push(singleTopicRequest(topic, true));
+		});
+	});
+
+	const multiTopicPromise = Promise.all(topicPromises)
+		.then((results) => {
+			data.results = results;
+
+			const combined_sorted_topic_results = results
+				.filter((entry) => {
+					if (entry.variables.nonMatchingTopicsSorted) {
+						return entry;
+					}
+				})
+				.map((entry) => {
+					return entry.variables.nonMatchingTopicsSorted;
+				})
+				.sort((a, b) => (a.ratio < b.ratio ? 1 : -1));
+
+			const mergedResults = [].concat.apply(
+				[],
+				combined_sorted_topic_results
+			);
+
+			data.nonMatchingTopicsSortedCombined = mergedResults;
+
+			const nonMatchingTopicsSortedCombinedClean = mergedResults.map(
+				(entry) => entry.concept_name
+			);
+			data.nonMatchingTopicsSortedCombinedClean = nonMatchingTopicsSortedCombinedClean;
+
+			// Rank returned topics if they appear more than once
+			// -----
+			const ranked = array_helper.compressArray(
+				nonMatchingTopicsSortedCombinedClean
+			);
+
+			const rankedCombined = mergedResults.map((entry) => {
+				let matched_entry = ranked.filter((sub_entry) => {
+					if (sub_entry.value === entry.concept_name) {
+						return sub_entry;
+					}
+				});
+				entry.count = matched_entry[0].count;
+				return entry;
+			});
+			data.rankedCombined = rankedCombined;
+
+			// Remove duplicate topics
+			// -----
+			let uniqueArrayOfObjects = object_helper.uniqueArrayOfObjects(
+				rankedCombined,
+				'concept_name'
+			);
+			data.uniqueArrayOfObjects = uniqueArrayOfObjects;
+
+			// Sort by count and then by ratio
+			// -----
+			const nonMatchingTopicsSorted = object_helper.doubleSort(
+				uniqueArrayOfObjects,
+				'count',
+				'ratio'
+			);
+			data.nonMatchingTopicsSorted = nonMatchingTopicsSorted;
+
+			// Clean the final result to return only the topic names sorted
+			// -----
+			const nonMatchingTopicsSortedClean = nonMatchingTopicsSorted.map(
+				(entry) => entry.concept_name
+			);
+			data.nonMatchingTopicsSortedClean = nonMatchingTopicsSortedClean;
+
+			return verboseData(verbose, data, {
+				topics: nonMatchingTopicsSortedClean
+			});
+		})
+		.catch((error) => {
+			data.error = error;
+			return verboseData(verbose, data, { error: data.error });
+		});
+
+	return await multiTopicPromise;
+}
+
+function verboseData(verbose, data, replacement) {
+	return verbose ? data : replacement;
 }
 
 module.exports = {
