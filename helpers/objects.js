@@ -8,6 +8,7 @@ function doubleSort(arrayOfObjs, sortProperty1, sortProperty2) {
 		if (object1[sortProperty1] < object2[sortProperty1]) return 1;
 		if (object1[sortProperty2] < object2[sortProperty2]) return 1;
 		if (object1[sortProperty2] > object2[sortProperty2]) return -1;
+		return 0;
 	});
 }
 
