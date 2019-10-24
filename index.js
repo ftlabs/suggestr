@@ -33,8 +33,10 @@ app.set('view engine', 'hbs');
 app.use('/static', express.static('static'));
 
 // Routes
-app.use(s3o);
-app.use('/topic', topics);
+if (process.env.NODE_ENV === 'production') {
+	app.use(s3o);
+}
+app.use('/topics', topics);
 
 app.use('/', (req, res) => {
 	res.render('index');
