@@ -2,23 +2,24 @@ const s3_model = require('../models/s3');
 const array_helper = require('../helpers/arrays');
 const object_helper = require('../helpers/objects');
 
-async function topics(topics, verbose) {
-	if (Array.isArray(topics)) {
-		return await multipleTopicRequest(topics, verbose);
+async function concepts(concepts, verbose, exclude) {
+	if (Array.isArray(concepts)) {
+		return await multipleConceptRequest(concepts, verbose, exclude);
 	} else {
-		return await singleTopicRequest(topics, verbose);
+		return await singleConceptRequest(concepts, verbose, exclude);
 	}
 }
 
-async function singleTopicRequest(topicName, verbose) {
+async function singleConceptRequest(topicName, verbose, exclude) {
 	// Set intial variables
 	// -----
 	const data = {
 		type: 'Topic search',
 		searchToken: topicName,
-		descripton: "...",
-		nonMatchingTopicsSortedClean : [],
-		variables: {}
+		descripton: '...',
+		excludes: exclude,
+		results: [],
+		workings: {}
 	};
 
 	// Load data files
@@ -80,27 +81,27 @@ async function singleTopicRequest(topicName, verbose) {
 			};
 		});
 
-	data.variables.allTopicsInCluster = allTopicsInCluster;
+	data.workings.allTopicsInCluster = allTopicsInCluster;
 
 	// Get the list of correlated content
 	// -----
 	const correlatedTopics = allCoocs[`topics:${topicName}`];
-	data.variables.correlatedTopics = correlatedTopics;
+	data.workings.correlatedTopics = correlatedTopics;
 
 	// Find the remaining topics that are not related at all
 	// -----
 	const allTopicsInClusterArr = allTopicsInCluster.map((entry) => entry.name);
-	data.variables.allTopicsInClusterArr = allTopicsInClusterArr;
+	data.workings.allTopicsInClusterArr = allTopicsInClusterArr;
 
 	const correlatedTopicsArr = Object.keys(correlatedTopics).map((entry) =>
 		entry.replace('topics:', '')
 	);
-	data.variables.correlatedTopicsArr = correlatedTopicsArr;
+	data.workings.correlatedTopicsArr = correlatedTopicsArr;
 
 	const nonMatchingTopics = allTopicsInClusterArr.filter((entry) =>
 		!correlatedTopicsArr.includes(entry) ? entry : null
 	);
-	data.variables.nonMatchingTopics = nonMatchingTopics;
+	data.workings.nonMatchingTopics = nonMatchingTopics;
 
 	if (nonMatchingTopics.length <= 0) {
 		data.error = 'No non-matching topics found';
@@ -114,28 +115,38 @@ async function singleTopicRequest(topicName, verbose) {
 			nonMatchingTopics.includes(entry.concept_name) ? entry : null
 		)
 		.sort((a, b) => (a.ratio < b.ratio ? 1 : -1));
-	data.variables.nonMatchingTopicsSorted = nonMatchingTopicsSorted;
+	data.workings.nonMatchingTopicsSorted = nonMatchingTopicsSorted;
 
 	// Clean the final result to return only the topic names sorted
 	// -----
 	const nonMatchingTopicsSortedClean = nonMatchingTopicsSorted.map(
 		(entry) => entry.concept_name
 	);
-	data.nonMatchingTopicsSortedClean = nonMatchingTopicsSortedClean;
+	data.workings.nonMatchingTopicsSortedClean = nonMatchingTopicsSortedClean;
+
+	// Remove any concepts on the exclude list
+	// -----
+	const resultTopics = nonMatchingTopicsSortedClean.filter((entry) => {
+		if (!exclude.includes(entry)) {
+			return entry;
+		}
+	});
+	data.results = resultTopics;
 
 	// Return results
 	// -----
-	return verboseData(verbose, data, { topics: nonMatchingTopicsSortedClean });
+	return verboseData(verbose, data, { topics: resultTopics });
 }
 
-async function multipleTopicRequest(topicNames, verbose) {
+async function multipleConceptRequest(topicNames, verbose, exclude) {
 	const topicsRequested = topicNames;
 	const data = {
 		type: 'Topic search - multiple',
 		searchToken: topicsRequested,
-		descripton: "...",
-		nonMatchingTopicsSortedClean : [],
-		variables: {}
+		descripton: '...',
+		excludes: exclude,
+		results: [],
+		workings: {}
 	};
 
 	if (!topicsRequested) {
@@ -147,7 +158,7 @@ async function multipleTopicRequest(topicNames, verbose) {
 	const topicPromises = [];
 	topics.map((topic) => {
 		new Promise(function(resolve, reject) {
-			topicPromises.push(singleTopicRequest(topic, true));
+			topicPromises.push(singleConceptRequest(topic, true, []));
 		});
 	});
 
@@ -157,12 +168,12 @@ async function multipleTopicRequest(topicNames, verbose) {
 
 			const combined_sorted_topic_results = results
 				.filter((entry) => {
-					if (entry.variables.nonMatchingTopicsSorted) {
+					if (entry.workings.nonMatchingTopicsSorted) {
 						return entry;
 					}
 				})
 				.map((entry) => {
-					return entry.variables.nonMatchingTopicsSorted;
+					return entry.workings.nonMatchingTopicsSorted;
 				})
 				.sort((a, b) => (a.ratio < b.ratio ? 1 : -1));
 
@@ -171,12 +182,12 @@ async function multipleTopicRequest(topicNames, verbose) {
 				combined_sorted_topic_results
 			);
 
-			data.nonMatchingTopicsSortedCombined = mergedResults;
+			data.workings.nonMatchingTopicsSortedCombined = mergedResults;
 
 			const nonMatchingTopicsSortedCombinedClean = mergedResults.map(
 				(entry) => entry.concept_name
 			);
-			data.nonMatchingTopicsSortedCombinedClean = nonMatchingTopicsSortedCombinedClean;
+			data.workings.nonMatchingTopicsSortedCombinedClean = nonMatchingTopicsSortedCombinedClean;
 
 			// Rank returned topics if they appear more than once
 			// -----
@@ -193,7 +204,7 @@ async function multipleTopicRequest(topicNames, verbose) {
 				entry.count = matched_entry[0].count;
 				return entry;
 			});
-			data.rankedCombined = rankedCombined;
+			data.workings.rankedCombined = rankedCombined;
 
 			// Remove duplicate topics
 			// -----
@@ -201,7 +212,7 @@ async function multipleTopicRequest(topicNames, verbose) {
 				rankedCombined,
 				'concept_name'
 			);
-			data.uniqueArrayOfObjects = uniqueArrayOfObjects;
+			data.workings.uniqueArrayOfObjects = uniqueArrayOfObjects;
 
 			// Sort by count and then by ratio
 			// -----
@@ -210,17 +221,28 @@ async function multipleTopicRequest(topicNames, verbose) {
 				'count',
 				'ratio'
 			);
-			data.nonMatchingTopicsSorted = nonMatchingTopicsSorted;
+			data.workings.nonMatchingTopicsSorted = nonMatchingTopicsSorted;
 
 			// Clean the final result to return only the topic names sorted
 			// -----
 			const nonMatchingTopicsSortedClean = nonMatchingTopicsSorted.map(
 				(entry) => entry.concept_name
 			);
-			data.nonMatchingTopicsSortedClean = nonMatchingTopicsSortedClean;
+			data.workings.nonMatchingTopicsSortedClean = nonMatchingTopicsSortedClean;
+
+			// Remove any concepts on the exclude list
+			// -----
+			const resultTopics = nonMatchingTopicsSortedClean.filter(
+				(entry) => {
+					if (!exclude.includes(entry)) {
+						return entry;
+					}
+				}
+			);
+			data.results = resultTopics;
 
 			return verboseData(verbose, data, {
-				topics: nonMatchingTopicsSortedClean
+				topics: results
 			});
 		})
 		.catch((error) => {
@@ -236,5 +258,5 @@ function verboseData(verbose, data, replacement) {
 }
 
 module.exports = {
-	topics
+	concepts
 };

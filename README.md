@@ -17,12 +17,17 @@ Using topic cluster analysis, topic correlations data and topic follow/unfollow 
 -   Add which clusters the multiples come from
 -   More words in the error (which is also not an error)
 -   More words in the reason why no suggestions we returned
+-   inconsistent naming of fields in single/multi topic responses
+-   duplication of code constructing responses for single/multi topic queries. e.g. I had to edit two different bits of code to make the one change (to add a description field).
+-   we have already mentioned the overly-specific use of the word 'topic' rather than concept.
+-   I added a placeholder for description (which should also go in the non verbose response)
 
 ## Done
 
 -   Add verbose parameter
     -   return version for all results or nothing
 -   Add git hub PR request template
+-   the field called 'variables' should probably have a different name, e.g. workings, or something, otherwise it looks like it should be a bunch of settings
 
 ## Setup
 
