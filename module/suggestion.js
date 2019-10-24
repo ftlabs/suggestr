@@ -16,6 +16,8 @@ async function singleTopicRequest(topicName, verbose) {
 	const data = {
 		type: 'Topic search',
 		searchToken: topicName,
+		descripton: "...",
+		nonMatchingTopicsSortedClean : [],
 		variables: {}
 	};
 
@@ -131,6 +133,8 @@ async function multipleTopicRequest(topicNames, verbose) {
 	const data = {
 		type: 'Topic search - multiple',
 		searchToken: topicsRequested,
+		descripton: "...",
+		nonMatchingTopicsSortedClean : [],
 		variables: {}
 	};
 
