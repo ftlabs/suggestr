@@ -2,25 +2,29 @@ const s3_model = require('../models/s3');
 const array_helper = require('../helpers/arrays');
 const object_helper = require('../helpers/objects');
 
-async function concepts(concepts, verbose, exclude) {
+const data = {
+	type: '',
+	searchToken: '',
+	descripton: '',
+	excludes: [],
+	results: [],
+	workings: {}
+};
+
+async function concepts(type, concepts, verbose, exclude) {
 	if (Array.isArray(concepts)) {
-		return await multipleConceptRequest(concepts, verbose, exclude);
+		return await multipleConceptRequest(type, concepts, verbose, exclude);
 	} else {
-		return await singleConceptRequest(concepts, verbose, exclude);
+		return await singleConceptRequest(type, concepts, verbose, exclude);
 	}
 }
 
-async function singleConceptRequest(topicName, verbose, exclude) {
+async function singleConceptRequest(type, topicName, verbose, exclude) {
 	// Set intial variables
 	// -----
-	const data = {
-		type: 'Topic search',
-		searchToken: topicName,
-		descripton: '...',
-		excludes: exclude,
-		results: [],
-		workings: {}
-	};
+	data.type = `${type} search`;
+	data.searchToken = topicName;
+	data.excludes = exclude;
 
 	// Load data files
 	// -----
@@ -138,16 +142,12 @@ async function singleConceptRequest(topicName, verbose, exclude) {
 	return verboseData(verbose, data, { topics: resultTopics });
 }
 
-async function multipleConceptRequest(topicNames, verbose, exclude) {
+async function multipleConceptRequest(type, topicNames, verbose, exclude) {
 	const topicsRequested = topicNames;
-	const data = {
-		type: 'Topic search - multiple',
-		searchToken: topicsRequested,
-		descripton: '...',
-		excludes: exclude,
-		results: [],
-		workings: {}
-	};
+
+	data.type = `${type} search`;
+	data.searchToken = topicsRequested;
+	data.excludes = exclude;
 
 	if (!topicsRequested) {
 		data.error = 'Topics query parameter not defined';
@@ -158,7 +158,7 @@ async function multipleConceptRequest(topicNames, verbose, exclude) {
 	const topicPromises = [];
 	topics.map((topic) => {
 		new Promise(function(resolve, reject) {
-			topicPromises.push(singleConceptRequest(topic, true, []));
+			topicPromises.push(singleConceptRequest('topic', topic, true, []));
 		});
 	});
 
