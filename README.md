@@ -22,8 +22,6 @@ Using topic cluster analysis, topic correlations data and topic follow/unfollow 
 -   Add strength criteria to the returned topic results
     -   [Multi] a topic that appears in all of the multi topic requests is a prime candidate
         -   all others are lesser suggestions
--   [bug] topic that appear in the search criteria should also be removed from the multi search results
-    -   remove at end of multi process, or when creating the single topic promises
 
 ## Done
 
@@ -33,6 +31,8 @@ Using topic cluster analysis, topic correlations data and topic follow/unfollow 
 -   the field called 'variables' should probably have a different name, e.g. workings, or something, otherwise it looks like it should be a bunch of settings
 -   Add exclude lists
 -   Show excludes to the result output
+-   [bug] topic that appear in the search criteria should also be removed from the multi search results
+    -   remove at end of multi process, or when creating the single topic promises
 
 ## Setup
 

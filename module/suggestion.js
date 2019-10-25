@@ -158,7 +158,9 @@ async function multipleConceptRequest(type, topicNames, verbose, exclude) {
 	const topicPromises = [];
 	topics.map((topic) => {
 		new Promise(function(resolve, reject) {
-			topicPromises.push(singleConceptRequest('topic', topic, true, []));
+			topicPromises.push(
+				singleConceptRequest('topic', topic, true, topics)
+			);
 		});
 	});
 
