@@ -2,24 +2,26 @@ const express = require('express');
 const router = express.Router();
 const suggestion = require('../module/suggestion');
 
-router.get('/single/:topicName', async (req, res) => {
-	const verbose = req.query.verbose ? req.query.verbose === 'true' : true;
-	const exclude = req.query.exclude ? req.query.exclude.split(',') : [];
-	const result = await suggestion.concepts(
-		'topic',
-		req.params.topicName,
-		verbose,
-		exclude
-	);
-	res.status(200).json(result);
-	return;
-});
+const supportedClusterSelections = ['3', '5', '10', '20'];
 
-router.get('/multiple/', async (req, res) => {
-	const verbose = req.query.verbose ? req.query.verbose === 'true' : true;
-	const exclude = req.query.exclude ? req.query.exclude.split(',') : [];
-	const topics = req.query.topics.split(',');
-	const result = await suggestion.concepts('topic', topics, verbose, exclude);
+const defaultClusterSelection = '20';
+const defaultConcepts = '';
+const defaultExcludes = [];
+const defaultType = 'topics';
+const defaultVerbosity = true;
+
+router.get('/', async (req, res) => {
+	const searchParams = {
+		clusterSelection:
+			req.query.clusterSelection && supportedClusterSelections.includes(req.query.clusterSelection)
+				? req.query.clusterSelection
+				: defaultClusterSelection,
+		concepts: req.query.concepts ? req.query.concepts.split(',') : defaultConcepts,
+		exclude: req.query.exclude ? req.query.exclude.split(',') : defaultExcludes,
+		type: defaultType,
+		verbose: req.query.verbose ? req.query.verbose === 'true' : defaultVerbosity
+	};
+	const result = await suggestion.concepts(searchParams);
 	res.status(200).json(result);
 	return;
 });

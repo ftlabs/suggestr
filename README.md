@@ -2,12 +2,10 @@
 
 A Follow based recommendation algorithm
 
-Using topic cluster analysis, topic correlations data and topic follow/unfollow ratios - can we suggest relevant topics to follow (or retirve articles) for based on any given topic(s)?
+Using topic cluster analysis, topic correlations data and topic follow/unfollow ratios - can we suggest retrieve topics to follow (or retirve articles) for based on any given topic(s)?
 
 ## Todo tasks
 
--   Add cluster variation
-    -   Add parameters for using the 3, 5, 10 and 20 cluster versions
 -   Use ‘non-overlapping’ rather than ‘non-matching’
 -   Re-replace topic variables with concepts
 -   Add summary for how these suggestions were suggested (good AI practice)(which should also go in the non verbose response)
@@ -25,6 +23,8 @@ Using topic cluster analysis, topic correlations data and topic follow/unfollow 
 
 ## Done
 
+-   Add cluster variation
+    -   Add parameters for using the 3, 5, 10 and 20 cluster versions
 -   Add verbose parameter
     -   return version for all results or nothing
 -   Add git hub PR request template
@@ -62,3 +62,11 @@ Using topic cluster analysis, topic correlations data and topic follow/unfollow 
 -   Compare the above two lists and identify the topics that do not appear in the correlated list
 -   Sort the discovered topics by their follow/unfollow ratio
 -   Return a list of sorted topics
+
+## Data conversion
+
+I've used the `csvtojson` npm module (installed globally) to convert the .csv files exported from the cluster analysis in R Studio.
+
+### How to convert a CSV to JSON
+
+-   `csvtojson data.csv > data.json`

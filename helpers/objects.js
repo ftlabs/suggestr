@@ -1,5 +1,19 @@
-function singleSort(arrayOfObjs, sortProperty1) {
-	return null;
+function getMatching(arrayOfObjs, matchProperty, matchValue) {
+	return arrayOfObjs.filter((entry) => {
+		return entry[matchProperty] === matchValue ? entry : null;
+	});
+}
+
+function getFirstMatching(arrayOfObjs, matchProperty, matchValue) {
+	const matchingItems = arrayOfObjs.filter((entry) => {
+		return entry[matchProperty] === matchValue ? entry : null;
+	});
+
+	if (matchingItems.length <= 0) {
+		return null;
+	}
+
+	return matchingItems[0];
 }
 
 function doubleSort(arrayOfObjs, sortProperty1, sortProperty2) {
@@ -24,6 +38,8 @@ function uniqueArrayOfObjects(arrayOfObjs, unique_name) {
 }
 
 module.exports = {
+	getMatching,
+	getFirstMatching,
 	doubleSort,
 	uniqueArrayOfObjects
 };

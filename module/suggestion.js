@@ -1,174 +1,52 @@
-const s3_model = require('../models/s3');
-const array_helper = require('../helpers/arrays');
-const object_helper = require('../helpers/objects');
+const s3Model = require('../models/s3');
+const arrayHelper = require('../helpers/arrays');
+const objectHelper = require('../helpers/objects');
 
-const data = {
-	type: '',
-	searchToken: '',
+const returnDataTemplate = {
 	descripton: '',
-	excludes: [],
+	searchType: '',
+	searchParams: {},
 	results: [],
 	workings: {}
 };
 
-async function concepts(type, concepts, verbose, exclude) {
-	if (Array.isArray(concepts)) {
-		return await multipleConceptRequest(type, concepts, verbose, exclude);
-	} else {
-		return await singleConceptRequest(type, concepts, verbose, exclude);
-	}
+async function concepts(params) {
+	const data = { ...returnDataTemplate };
+	data.searchParams = params;
+	data.searchType = `${params.type} search`;
+	data.descripton =
+		'Provides concept suggestions (as requested in searchType) based on the provided concept(s). Each provided concept is used to search for concepts that are not correlated with it, but still exist in the same cluster, and suggest those concepts as best fit. A query with multiple concepts to search for breaks the query down into seperate searches - only joining together at the end of the process for ranking. Any questions? Please contact myself or ftlabs@ft.com';
+	return await multipleConceptRequest(data, params);
 }
 
-async function singleConceptRequest(type, topicName, verbose, exclude) {
-	// Set intial variables
-	// -----
-	data.type = `${type} search`;
-	data.searchToken = topicName;
-	data.excludes = exclude;
+async function multipleConceptRequest(data, params) {
+	const { concepts, exclude, verbose } = params;
 
-	// Load data files
-	// -----
-	let topicClusterList;
-	let allCoocs;
-	let followUnfollowRatios;
-
-	try {
-		const clusterListDataFile = await s3_model.getFile(
-			'topic_cluster_list.json'
-		);
-		const coocsDataFile = await s3_model.getFile('allCoocs.json');
-		const followUnfollowRatiosDataFile = await s3_model.getFile(
-			'topic_ratios.json'
-		);
-
-		topicClusterList = JSON.parse(clusterListDataFile.Body.toString());
-		allCoocs = JSON.parse(coocsDataFile.Body.toString());
-		followUnfollowRatios = JSON.parse(
-			followUnfollowRatiosDataFile.Body.toString()
-		);
-	} catch (err) {
-		data.error = err;
-		return verboseData(verbose, data, { error: err });
+	if (!concepts) {
+		data.error = 'Concepts query parameter not defined';
+		return verboseData(verbose, data, { error: data.error });
 	}
 
-	// Find topic in list
-	// -----
-	const foundTopic = topicClusterList.filter((entry) =>
-		entry.name === topicName ? entry : null
-	);
-
-	if (foundTopic.length <= 0) {
-		const err = 'Topic not found';
-		data.error = err;
-		return verboseData(verbose, data, { error: err });
-	}
-
-	const foundTopicSingle = foundTopic[0];
-	const foundTopicClusterNo = foundTopicSingle.cluster_group;
-	data.clusterNumber = foundTopicClusterNo;
-
-	// Get all the other topics with the matching group
-	// -----
-	const allTopicsInCluster = topicClusterList
-		.filter(function(entry) {
-			if (
-				entry.cluster_group === foundTopicClusterNo &&
-				entry.name !== topicName
-			) {
-				return entry;
+	const conceptPromises = concepts.map((concept) => {
+		const singleData = { ...returnDataTemplate };
+		singleData.searchParams = params;
+		singleData.searchType = `${params.type} search`;
+		singleData.searchParams.concepts = concept;
+		return new Promise(function(resolve, reject) {
+			try {
+				resolve(singleConceptRequest(singleData, concept, params));
+			} catch (error) {
+				reject(error);
 			}
-		})
-		.map(function(entry) {
-			return {
-				name: entry.name,
-				cluster_group: entry.cluster_group
-			};
-		});
-
-	data.workings.allTopicsInCluster = allTopicsInCluster;
-
-	// Get the list of correlated content
-	// -----
-	const correlatedTopics = allCoocs[`topics:${topicName}`];
-	data.workings.correlatedTopics = correlatedTopics;
-
-	// Find the remaining topics that are not related at all
-	// -----
-	const allTopicsInClusterArr = allTopicsInCluster.map((entry) => entry.name);
-	data.workings.allTopicsInClusterArr = allTopicsInClusterArr;
-
-	const correlatedTopicsArr = Object.keys(correlatedTopics).map((entry) =>
-		entry.replace('topics:', '')
-	);
-	data.workings.correlatedTopicsArr = correlatedTopicsArr;
-
-	const nonMatchingTopics = allTopicsInClusterArr.filter((entry) =>
-		!correlatedTopicsArr.includes(entry) ? entry : null
-	);
-	data.workings.nonMatchingTopics = nonMatchingTopics;
-
-	if (nonMatchingTopics.length <= 0) {
-		data.error = 'No non-matching topics found';
-		return verboseData(verbose, data, { error: data.error });
-	}
-
-	// Sort by follow/unfollow ratio
-	// -----
-	const nonMatchingTopicsSorted = followUnfollowRatios
-		.filter((entry) =>
-			nonMatchingTopics.includes(entry.concept_name) ? entry : null
-		)
-		.sort((a, b) => (a.ratio < b.ratio ? 1 : -1));
-	data.workings.nonMatchingTopicsSorted = nonMatchingTopicsSorted;
-
-	// Clean the final result to return only the topic names sorted
-	// -----
-	const nonMatchingTopicsSortedClean = nonMatchingTopicsSorted.map(
-		(entry) => entry.concept_name
-	);
-	data.workings.nonMatchingTopicsSortedClean = nonMatchingTopicsSortedClean;
-
-	// Remove any concepts on the exclude list
-	// -----
-	const resultTopics = nonMatchingTopicsSortedClean.filter((entry) => {
-		if (!exclude.includes(entry)) {
-			return entry;
-		}
-	});
-	data.results = resultTopics;
-
-	// Return results
-	// -----
-	return verboseData(verbose, data, { topics: resultTopics });
-}
-
-async function multipleConceptRequest(type, topicNames, verbose, exclude) {
-	const topicsRequested = topicNames;
-
-	data.type = `${type} search`;
-	data.searchToken = topicsRequested;
-	data.excludes = exclude;
-
-	if (!topicsRequested) {
-		data.error = 'Topics query parameter not defined';
-		return verboseData(verbose, data, { error: data.error });
-	}
-
-	const topics = topicNames;
-	const topicPromises = [];
-	topics.map((topic) => {
-		new Promise(function(resolve, reject) {
-			topicPromises.push(
-				singleConceptRequest('topic', topic, true, topics)
-			);
 		});
 	});
 
-	const multiTopicPromise = Promise.all(topicPromises)
+	return await Promise.all(conceptPromises)
 		.then((results) => {
+			console.log(' multi search results');
 			data.results = results;
 
-			const combined_sorted_topic_results = results
+			const combinedSortedConceptResults = results
 				.filter((entry) => {
 					if (entry.workings.nonMatchingTopicsSorted) {
 						return entry;
@@ -179,23 +57,16 @@ async function multipleConceptRequest(type, topicNames, verbose, exclude) {
 				})
 				.sort((a, b) => (a.ratio < b.ratio ? 1 : -1));
 
-			const mergedResults = [].concat.apply(
-				[],
-				combined_sorted_topic_results
-			);
+			const mergedResults = [].concat.apply([], combinedSortedConceptResults);
 
 			data.workings.nonMatchingTopicsSortedCombined = mergedResults;
 
-			const nonMatchingTopicsSortedCombinedClean = mergedResults.map(
-				(entry) => entry.concept_name
-			);
+			const nonMatchingTopicsSortedCombinedClean = mergedResults.map((entry) => entry.concept_name);
 			data.workings.nonMatchingTopicsSortedCombinedClean = nonMatchingTopicsSortedCombinedClean;
 
 			// Rank returned topics if they appear more than once
 			// -----
-			const ranked = array_helper.compressArray(
-				nonMatchingTopicsSortedCombinedClean
-			);
+			const ranked = arrayHelper.compressArray(nonMatchingTopicsSortedCombinedClean);
 
 			const rankedCombined = mergedResults.map((entry) => {
 				let matched_entry = ranked.filter((sub_entry) => {
@@ -210,38 +81,29 @@ async function multipleConceptRequest(type, topicNames, verbose, exclude) {
 
 			// Remove duplicate topics
 			// -----
-			let uniqueArrayOfObjects = object_helper.uniqueArrayOfObjects(
-				rankedCombined,
-				'concept_name'
-			);
+			let uniqueArrayOfObjects = object_helper.uniqueArrayOfObjects(rankedCombined, 'concept_name');
 			data.workings.uniqueArrayOfObjects = uniqueArrayOfObjects;
 
 			// Sort by count and then by ratio
 			// -----
-			const nonMatchingTopicsSorted = object_helper.doubleSort(
-				uniqueArrayOfObjects,
-				'count',
-				'ratio'
-			);
+			const nonMatchingTopicsSorted = object_helper.doubleSort(uniqueArrayOfObjects, 'count', 'ratio');
 			data.workings.nonMatchingTopicsSorted = nonMatchingTopicsSorted;
 
 			// Clean the final result to return only the topic names sorted
 			// -----
-			const nonMatchingTopicsSortedClean = nonMatchingTopicsSorted.map(
-				(entry) => entry.concept_name
-			);
+			const nonMatchingTopicsSortedClean = nonMatchingTopicsSorted.map((entry) => entry.concept_name);
 			data.workings.nonMatchingTopicsSortedClean = nonMatchingTopicsSortedClean;
 
 			// Remove any concepts on the exclude list
 			// -----
-			const resultTopics = nonMatchingTopicsSortedClean.filter(
-				(entry) => {
-					if (!exclude.includes(entry)) {
-						return entry;
-					}
+			const resultTopics = nonMatchingTopicsSortedClean.filter((entry) => {
+				if (!exclude.includes(entry)) {
+					return entry;
 				}
-			);
+			});
 			data.results = resultTopics;
+
+			console.log('end multi search');
 
 			return verboseData(verbose, data, {
 				topics: results
@@ -251,8 +113,79 @@ async function multipleConceptRequest(type, topicNames, verbose, exclude) {
 			data.error = error;
 			return verboseData(verbose, data, { error: data.error });
 		});
+}
 
-	return await multiTopicPromise;
+async function singleConceptRequest(data, conceptName, params) {
+	const { type, clusterSelection, exclude, verbose } = params;
+	const resultReturn = { ...data };
+
+	// Load data files
+	// -----
+	const [conceptClusterList, allCoocs, followUnfollowRatios] = await Promise.all([
+		s3Model.getBodyAsJson(`${type}_cluster_${clusterSelection}_list.json`),
+		s3Model.getBodyAsJson('allCoocs.json'),
+		s3Model.getBodyAsJson(`${type}_ratios.json`)
+	]).catch((error) => {
+		throw error;
+	});
+
+	// Find concept in list
+	// -----
+	const foundConcept = objectHelper.getFirstMatching(conceptClusterList, 'name', conceptName);
+	if (foundConcept === null) {
+		throw 'Concept not found';
+	}
+	resultReturn.clusterGroup = foundConcept.cluster_group;
+
+	// Get all the other concepts with the matching group
+	// -----
+	const allConceptsInCluster = objectHelper
+		.getMatching(conceptClusterList, 'cluster_group', resultReturn.clusterGroup)
+		.filter((entry) => entry.name !== conceptName)
+		.map((entry) => entry.name);
+
+	// Find the remaining concpets that are not related at all
+	// -----
+	const allCoocsList = allCoocs[`${type}:${conceptName}`];
+	const correlatedConcepts = Object.keys(allCoocsList).map((entry) => entry.replace(`${type}:`, ''));
+	const nonOverlappingConcepts = allConceptsInCluster.filter((entry) =>
+		!correlatedConcepts.includes(entry) ? entry : null
+	);
+
+	resultReturn.workings.allConceptsInCluster = allConceptsInCluster;
+	resultReturn.workings.correlatedConcepts = correlatedConcepts;
+	resultReturn.workings.allConceptsInCluster = allConceptsInCluster;
+	resultReturn.workings.nonOverlappingConcepts = nonOverlappingConcepts;
+
+	if (nonOverlappingConcepts.length <= 0) {
+		throw `No non-overlapping ${type} found`;
+	}
+
+	// Sort by follow/unfollow ratio
+	// -----
+	const nonOverlappingConceptsSorted = followUnfollowRatios
+		.filter((entry) => (nonOverlappingConcepts.includes(entry.concept_name) ? entry : null))
+		.sort((a, b) => (a.ratio < b.ratio ? 1 : -1));
+
+	// Clean the final result to return only the topic names sorted
+	// -----
+	const nonOverlappingConceptsSortedClean = nonOverlappingConceptsSorted.map((entry) => entry.concept_name);
+
+	// Remove any concepts on the exclude list
+	// -----
+	const resultConcepts = nonOverlappingConceptsSortedClean.filter((entry) => {
+		if (!exclude.includes(entry)) {
+			return entry;
+		}
+	});
+
+	resultReturn.workings.nonOverlappingConceptsSorted = nonOverlappingConceptsSorted;
+	resultReturn.workings.nonOverlappingConceptsSortedClean = nonOverlappingConceptsSortedClean;
+	resultReturn.results = resultConcepts;
+
+	// Return results
+	// -----
+	return verboseData(verbose, resultReturn, { concepts: resultConcepts });
 }
 
 function verboseData(verbose, data, replacement) {
