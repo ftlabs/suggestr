@@ -43,11 +43,9 @@ I've used the `csvtojson` npm module (installed globally) to convert the .csv fi
 
 ## Todo tasks
 
--   Add summary for how these suggestions were suggested (good AI practice)(which should also go in the non verbose response)
 -   Add which clusters the multiples come from
 -   More words in the error (which is also not an error)
 -   More words in the reason why no suggestions we returned
-
 -   Add strength criteria to the returned topic results
     -   [Multi] a topic that appears in all of the multi topic requests is a prime candidate
         -   all others are lesser suggestions
@@ -55,6 +53,7 @@ I've used the `csvtojson` npm module (installed globally) to convert the .csv fi
 
 ## Completed Todo tasks
 
+-   Add summary for how these suggestions were suggested (good AI practice)(which should also go in the non verbose response)
 -   Add a URL builder from main page
 -   inconsistent naming of fields in single/multi topic responses
 -   Use ‘non-overlapping’ rather than ‘non-matching’

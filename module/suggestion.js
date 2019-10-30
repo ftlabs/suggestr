@@ -4,6 +4,7 @@ const objectHelper = require('../helpers/objects');
 
 const returnDataTemplate = {
 	descripton: '',
+	summary: '',
 	searchType: '',
 	searchParams: {},
 	results: [],
@@ -15,7 +16,9 @@ async function concepts(params) {
 	data.searchParams = params;
 	data.searchType = `${params.type} search`;
 	data.descripton =
-		'Provides concept suggestions (as requested in searchType) based on the provided concept(s). Each provided concept is used to search for concepts that are not correlated with it, but still exist in the same cluster, and suggest those concepts as best fit. A query with multiple concepts to search for breaks the query down into seperate searches - only joining together at the end of the process for ranking. Any questions? Please contact myself or ftlabs@ft.com';
+		'Provides concept suggestions, type of concept specified in searchType, based on the provided concept(s). Each provided concept is used to search for concepts that are not correlated with it, but still exist in the same cluster, and suggest those concepts as best fit. A query with multiple concepts to search for breaks the query down into seperate searches - only joining together at the end of the process for ranking.';
+	data.summary =
+		'An explaination on how the concepts are suggested is located in this repositieds readme (https://github.com/ftlabs/suggestr). Any questions? Please contact myself or ftlabs@ft.com';
 	return await multipleConceptRequest(data, params);
 }
 
