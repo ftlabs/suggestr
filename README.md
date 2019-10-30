@@ -6,23 +6,24 @@ Using topic cluster analysis, topic correlations data and topic follow/unfollow 
 
 ## Todo tasks
 
--   Use ‘non-overlapping’ rather than ‘non-matching’
--   Re-replace topic variables with concepts
 -   Add summary for how these suggestions were suggested (good AI practice)(which should also go in the non verbose response)
--   Add description field to whole result, describe the process
-    -   Put Labs contact address in the description
 -   Add which clusters the multiples come from
 -   More words in the error (which is also not an error)
 -   More words in the reason why no suggestions we returned
--   inconsistent naming of fields in single/multi topic responses
--   duplication of code constructing responses for single/multi topic queries. e.g. I had to edit two different bits of code to make the one change (to add a description field).
 -   Add a URL builder from main page
 -   Add strength criteria to the returned topic results
     -   [Multi] a topic that appears in all of the multi topic requests is a prime candidate
         -   all others are lesser suggestions
+-   Test (and fix if required) multi-cluster requests
 
 ## Done
 
+-   inconsistent naming of fields in single/multi topic responses
+-   Use ‘non-overlapping’ rather than ‘non-matching’
+-   duplication of code constructing responses for single/multi topic queries. e.g. I had to edit two different bits of code to make the one change (to add a description field).
+-   Re-replace topic variables with concepts
+-   Add description field to whole result, describe the process
+    -   Put Labs contact address in the description
 -   Add cluster variation
     -   Add parameters for using the 3, 5, 10 and 20 cluster versions
 -   Add verbose parameter

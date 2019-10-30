@@ -21,10 +21,11 @@ async function concepts(params) {
 
 async function multipleConceptRequest(data, params) {
 	const { concepts, exclude, verbose } = params;
+	const multiData = { ...data };
 
 	if (!concepts) {
-		data.error = 'Concepts query parameter not defined';
-		return verboseData(verbose, data, { error: data.error });
+		multiData.error = 'Concepts query parameter not defined';
+		return verboseData(verbose, data, { error: multiData.error });
 	}
 
 	const conceptPromises = concepts.map((concept) => {
@@ -43,32 +44,28 @@ async function multipleConceptRequest(data, params) {
 
 	return await Promise.all(conceptPromises)
 		.then((results) => {
-			console.log(' multi search results');
-			data.results = results;
+			multiData.subqueries = results;
 
 			const combinedSortedConceptResults = results
 				.filter((entry) => {
-					if (entry.workings.nonMatchingTopicsSorted) {
+					if (entry.workings.nonOverlappingConceptsSorted) {
 						return entry;
 					}
 				})
 				.map((entry) => {
-					return entry.workings.nonMatchingTopicsSorted;
+					return entry.workings.nonOverlappingConceptsSorted;
 				})
 				.sort((a, b) => (a.ratio < b.ratio ? 1 : -1));
 
-			const mergedResults = [].concat.apply([], combinedSortedConceptResults);
+			const nonMatchingConceptsSortedCombined = [].concat.apply([], combinedSortedConceptResults);
+			const nonMatchingConceptsSortedCombinedClean = nonMatchingConceptsSortedCombined.map(
+				(entry) => entry.concept_name
+			);
 
-			data.workings.nonMatchingTopicsSortedCombined = mergedResults;
-
-			const nonMatchingTopicsSortedCombinedClean = mergedResults.map((entry) => entry.concept_name);
-			data.workings.nonMatchingTopicsSortedCombinedClean = nonMatchingTopicsSortedCombinedClean;
-
-			// Rank returned topics if they appear more than once
+			// Rank returned concepts if they appear more than once
 			// -----
-			const ranked = arrayHelper.compressArray(nonMatchingTopicsSortedCombinedClean);
-
-			const rankedCombined = mergedResults.map((entry) => {
+			const ranked = arrayHelper.compressArray(nonMatchingConceptsSortedCombinedClean);
+			const rankedCombined = nonMatchingConceptsSortedCombined.map((entry) => {
 				let matched_entry = ranked.filter((sub_entry) => {
 					if (sub_entry.value === entry.concept_name) {
 						return sub_entry;
@@ -77,41 +74,44 @@ async function multipleConceptRequest(data, params) {
 				entry.count = matched_entry[0].count;
 				return entry;
 			});
-			data.workings.rankedCombined = rankedCombined;
 
-			// Remove duplicate topics
+			// Remove duplicate concepts
 			// -----
-			let uniqueArrayOfObjects = object_helper.uniqueArrayOfObjects(rankedCombined, 'concept_name');
-			data.workings.uniqueArrayOfObjects = uniqueArrayOfObjects;
+			let uniqueArrayOfObjects = objectHelper.uniqueArrayOfObjects(rankedCombined, 'concept_name');
 
 			// Sort by count and then by ratio
 			// -----
-			const nonMatchingTopicsSorted = object_helper.doubleSort(uniqueArrayOfObjects, 'count', 'ratio');
-			data.workings.nonMatchingTopicsSorted = nonMatchingTopicsSorted;
+			const nonMatchingConceptsSorted = objectHelper.doubleSort(uniqueArrayOfObjects, 'count', 'ratio');
 
-			// Clean the final result to return only the topic names sorted
+			// Clean the final result to return only the concept names sorted
 			// -----
-			const nonMatchingTopicsSortedClean = nonMatchingTopicsSorted.map((entry) => entry.concept_name);
-			data.workings.nonMatchingTopicsSortedClean = nonMatchingTopicsSortedClean;
+			const nonMatchingConceptsSortedClean = nonMatchingConceptsSorted.map((entry) => entry.concept_name);
+
+			multiData.workings = {
+				nonMatchingConceptsSortedCombined,
+				nonMatchingConceptsSortedCombinedClean,
+				rankedCombined,
+				uniqueArrayOfObjects,
+				nonMatchingConceptsSorted,
+				nonMatchingConceptsSortedClean
+			};
 
 			// Remove any concepts on the exclude list
 			// -----
-			const resultTopics = nonMatchingTopicsSortedClean.filter((entry) => {
+			const resultConcepts = nonMatchingConceptsSortedClean.filter((entry) => {
 				if (!exclude.includes(entry)) {
 					return entry;
 				}
 			});
-			data.results = resultTopics;
+			multiData.results = resultConcepts;
 
-			console.log('end multi search');
-
-			return verboseData(verbose, data, {
-				topics: results
+			return verboseData(verbose, multiData, {
+				concepts: resultConcepts
 			});
 		})
 		.catch((error) => {
-			data.error = error;
-			return verboseData(verbose, data, { error: data.error });
+			multiData.error = error;
+			return verboseData(verbose, multiData, { error: multiData.error });
 		});
 }
 
@@ -152,11 +152,6 @@ async function singleConceptRequest(data, conceptName, params) {
 		!correlatedConcepts.includes(entry) ? entry : null
 	);
 
-	resultReturn.workings.allConceptsInCluster = allConceptsInCluster;
-	resultReturn.workings.correlatedConcepts = correlatedConcepts;
-	resultReturn.workings.allConceptsInCluster = allConceptsInCluster;
-	resultReturn.workings.nonOverlappingConcepts = nonOverlappingConcepts;
-
 	if (nonOverlappingConcepts.length <= 0) {
 		throw `No non-overlapping ${type} found`;
 	}
@@ -167,7 +162,7 @@ async function singleConceptRequest(data, conceptName, params) {
 		.filter((entry) => (nonOverlappingConcepts.includes(entry.concept_name) ? entry : null))
 		.sort((a, b) => (a.ratio < b.ratio ? 1 : -1));
 
-	// Clean the final result to return only the topic names sorted
+	// Clean the final result to return only the concept names sorted
 	// -----
 	const nonOverlappingConceptsSortedClean = nonOverlappingConceptsSorted.map((entry) => entry.concept_name);
 
@@ -179,13 +174,20 @@ async function singleConceptRequest(data, conceptName, params) {
 		}
 	});
 
-	resultReturn.workings.nonOverlappingConceptsSorted = nonOverlappingConceptsSorted;
-	resultReturn.workings.nonOverlappingConceptsSortedClean = nonOverlappingConceptsSortedClean;
+	resultReturn.workings = {
+		allConceptsInCluster,
+		correlatedConcepts,
+		allConceptsInCluster,
+		nonOverlappingConcepts,
+		nonOverlappingConceptsSorted,
+		nonOverlappingConceptsSortedClean
+	};
+
 	resultReturn.results = resultConcepts;
 
 	// Return results
 	// -----
-	return verboseData(verbose, resultReturn, { concepts: resultConcepts });
+	return resultReturn;
 }
 
 function verboseData(verbose, data, replacement) {

@@ -5,7 +5,6 @@
   <meta charset="UTF-8">
   <title>FT Labs: POC of MyFT follow-based topic recommendation algorithm</title>
   <meta name="description" content="">
-  <link rel="stylesheet" href="https://build.origami.ft.com/v2/bundles/css">
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 
@@ -28,6 +27,7 @@
     workings.<br />
     The default value is true
   </p>
+  <hr />
   <h2>
     Example links
   </h2>
@@ -36,10 +36,10 @@
   </p>
   <ul>
     <li>
-      <a href="/topics/?topics=Brexit">Get suggestions for the topic <b>Brexit</b></a>
+      <a href="/topics/?concepts=Brexit">Get suggestions for the topic <b>Brexit</b></a>
     </li>
     <li>
-      <a href="/topics/?topics=Brexit&amp;verbose=false">Get suggestions for the topic <b>Brexit</b> (verbose
+      <a href="/topics/?concepts=Brexit&amp;verbose=false">Get suggestions for the topic <b>Brexit</b> (verbose
         disabled)</a>
     </li>
   </ul>
@@ -48,10 +48,10 @@
   </p>
   <ul>
     <li>
-      <a href="/topics/?topics=Blockchain">Get suggestions for the topic <b>Blockchain</b></a>
+      <a href="/topics/?concepts=Blockchain">Get suggestions for the topic <b>Blockchain</b></a>
     </li>
     <li>
-      <a href="/topics/?topics=Blockchain&amp;verbose=false">Get suggestions for the topic <b>Blockchain</b> (verbose
+      <a href="/topics/?concepts=Blockchain&amp;verbose=false">Get suggestions for the topic <b>Blockchain</b> (verbose
         disabled)</a>
     </li>
   </ul>
@@ -60,12 +60,12 @@
   </p>
   <ul>
     <li>
-      <a href="/topics/?topics=Private%20equity,Investment%20Banking,Hedge%20funds">Get suggestions for the
+      <a href="/topics/?concepts=Private%20equity,Investment%20Banking,Hedge%20funds">Get suggestions for the
         topics
         <b>Private equity, Investment Banking & Hedge funds</b></a>
     </li>
     <li>
-      <a href="/topics/?topics=Private%20equity,Investment%20Banking,Hedge%20funds&amp;verbose=false">Get
+      <a href="/topics/?concepts=Private%20equity,Investment%20Banking,Hedge%20funds&amp;verbose=false">Get
         suggestions for the
         topics
         <b>Private equity, Investment Banking & Hedge funds</b> (verbose disabled)</a>
@@ -74,7 +74,46 @@
   <p>
     <b>Multiple request - Some results - Topics in different clusters</b>
   </p>
-
+  <ul>
+    <li>
+      TODO
+    </li>
+  </ul>
+  <hr />
+  <h2>
+    URL builder
+  </h2>
+  <form id="urlBuilder">
+    <label>Type</label>
+    <input id="conceptType" type="text" disabled value="topics" />
+    <br />
+    <label>Comma seperated list of topics to search for</label>
+    <input id="searchConcepts" type="text" />
+    <br />
+    <label>Comma seperated list of topics to exclude from results</label>
+    <input id="excludeConcpets" type="text" />
+    <br />
+    <label>Verbose</label>
+    <select id="verbose">
+      <option value="true" selected>True</option>
+      <option value="false">False</option>
+    </select>
+    <br />
+    <label>Cluster selection</label>
+    <select id="clusterSelection">
+      <option value="20" selected>20</option>
+      <option value="10">10</option>
+      <option value="5">5</option>
+      <option value="3">3</option>
+    </select>
+    <br />
+    <button>Update URL</button>
+  </form>
+  <br />
+  <h3>Generated URL</h3>
+  <p>
+    <a href="#" id="urlBuilderOutput"></a>
+  </p>
   <script src="/static/js/script.js"></script>
 </body>
 
