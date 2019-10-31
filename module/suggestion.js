@@ -7,6 +7,7 @@ const returnDataTemplate = {
 	summary: '',
 	searchType: '',
 	searchParams: {},
+	status: {},
 	results: [],
 	workings: {}
 };
@@ -27,7 +28,7 @@ async function multipleConceptRequest(data, params) {
 	const multiData = { ...data };
 
 	if (!concepts) {
-		multiData.error = 'Concepts query parameter not defined';
+		multiData.error = 'Concepts query parameter not defined, please provide concept(s) to begin a search';
 		return verboseData(verbose, data, { error: multiData.error });
 	}
 
@@ -35,7 +36,7 @@ async function multipleConceptRequest(data, params) {
 		const singleData = { ...returnDataTemplate };
 		singleData.searchParams = params;
 		singleData.searchType = `${params.type} search`;
-		singleData.searchParams.concepts = concept;
+
 		return new Promise(function(resolve, reject) {
 			try {
 				resolve(singleConceptRequest(singleData, concept, params));
@@ -48,6 +49,35 @@ async function multipleConceptRequest(data, params) {
 	return await Promise.all(conceptPromises)
 		.then((results) => {
 			multiData.subqueries = results;
+
+			const subqueryClusters = results.map((entry) => {
+				return {
+					name: entry.searchParams.concepts,
+					clusterGroup: entry.clusterGroup
+				};
+			});
+
+			const subqueryStatus = results.map((entry) => entry.status);
+			const incompleteQueries = subqueryStatus
+				.filter((entry) => {
+					if (entry.completion == 'failed') {
+						return entry;
+					}
+				})
+				.map((entry) => {
+					return {
+						name: entry.name,
+						message: entry.message
+					};
+				});
+
+			multiData.subqueryClusters = subqueryClusters;
+			multiData.status = {
+				msg: `${subqueryStatus.length - incompleteQueries.length} query(s) passed, ${
+					incompleteQueries.length
+				} query(s) failed`,
+				incompleteQueries
+			};
 
 			const combinedSortedConceptResults = results
 				.filter((entry) => {
@@ -86,9 +116,26 @@ async function multipleConceptRequest(data, params) {
 			// -----
 			const nonMatchingConceptsSorted = objectHelper.doubleSort(uniqueArrayOfObjects, 'count', 'ratio');
 
+			// Remove any concepts on the exclude list
+			// -----
+			const nonMatchingConceptsSortedTidy = nonMatchingConceptsSorted.filter((entry) => {
+				if (!exclude.includes(entry.name)) {
+					return entry;
+				}
+			});
+
 			// Clean the final result to return only the concept names sorted
 			// -----
-			const nonMatchingConceptsSortedClean = nonMatchingConceptsSorted.map((entry) => entry.concept_name);
+			const nonMatchingConceptsSortedTidyRanked = siftResults(
+				nonMatchingConceptsSortedTidy,
+				results.length,
+				false
+			);
+			const nonMatchingConceptsSortedTidyRankedClean = siftResults(
+				nonMatchingConceptsSortedTidy,
+				results.length,
+				true
+			);
 
 			multiData.workings = {
 				nonMatchingConceptsSortedCombined,
@@ -96,17 +143,12 @@ async function multipleConceptRequest(data, params) {
 				rankedCombined,
 				uniqueArrayOfObjects,
 				nonMatchingConceptsSorted,
-				nonMatchingConceptsSortedClean
+				nonMatchingConceptsSortedTidy,
+				nonMatchingConceptsSortedTidyRanked,
+				nonMatchingConceptsSortedTidyRankedClean
 			};
 
-			// Remove any concepts on the exclude list
-			// -----
-			const resultConcepts = nonMatchingConceptsSortedClean.filter((entry) => {
-				if (!exclude.includes(entry)) {
-					return entry;
-				}
-			});
-			multiData.results = resultConcepts;
+			multiData.results = nonMatchingConceptsSortedTidyRankedClean;
 
 			return verboseData(verbose, multiData, {
 				concepts: resultConcepts
@@ -119,8 +161,11 @@ async function multipleConceptRequest(data, params) {
 }
 
 async function singleConceptRequest(data, conceptName, params) {
-	const { type, clusterSelection, exclude, verbose } = params;
-	const resultReturn = { ...data };
+	const { type, clusterSelection, exclude } = params;
+	const resultReturn = { ...returnDataTemplate };
+
+	resultReturn.searchParams = { ...data.searchParams };
+	resultReturn.searchParams.concepts = conceptName;
 
 	// Load data files
 	// -----
@@ -136,7 +181,9 @@ async function singleConceptRequest(data, conceptName, params) {
 	// -----
 	const foundConcept = objectHelper.getFirstMatching(conceptClusterList, 'name', conceptName);
 	if (foundConcept === null) {
-		throw 'Concept not found';
+		const nonCompletionMsg = 'No concept found with that name, please check the spelling';
+		resultReturn.status = statusObj(0, conceptName, nonCompletionMsg);
+		return resultReturn;
 	}
 	resultReturn.clusterGroup = foundConcept.cluster_group;
 
@@ -156,7 +203,9 @@ async function singleConceptRequest(data, conceptName, params) {
 	);
 
 	if (nonOverlappingConcepts.length <= 0) {
-		throw `No non-overlapping ${type} found`;
+		const nonCompletionMsg = `No non-overlapping ${type} found. This means that: the searched topic is part of cluster ${foundConcept.cluster_group}, all the other topics in this cluster correlate to ${conceptName} in some manner, so (with this algorithm) there are no nonOverlapping concepts to suggest.`;
+		resultReturn.status = statusObj(0, conceptName, nonCompletionMsg);
+		return resultReturn;
 	}
 
 	// Sort by follow/unfollow ratio
@@ -186,6 +235,7 @@ async function singleConceptRequest(data, conceptName, params) {
 		nonOverlappingConceptsSortedClean
 	};
 
+	resultReturn.status = statusObj(1, conceptName);
 	resultReturn.results = resultConcepts;
 
 	// Return results
@@ -195,6 +245,52 @@ async function singleConceptRequest(data, conceptName, params) {
 
 function verboseData(verbose, data, replacement) {
 	return verbose ? data : replacement;
+}
+
+function statusObj(completion, name, message = '') {
+	let completionMsg = '';
+	switch (completion) {
+		case 1:
+			completionMsg = 'success';
+			break;
+		case 0:
+		default:
+			completionMsg = 'failed';
+	}
+	return { completion: completionMsg, name, message };
+}
+
+function siftResults(results, searchCount, clean) {
+	const best = results
+		.filter((entry) => {
+			if (entry.count === searchCount) {
+				return entry;
+			}
+		})
+		.map((entry) => {
+			if (clean) {
+				return entry.concept_name;
+			}
+			return entry;
+		});
+
+	const other = results
+		.filter((entry) => {
+			if (entry.count !== searchCount) {
+				return entry;
+			}
+		})
+		.map((entry) => {
+			if (clean) {
+				return entry.concept_name;
+			}
+			return entry;
+		});
+
+	return {
+		best,
+		other
+	};
 }
 
 module.exports = {
