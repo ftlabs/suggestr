@@ -70,14 +70,15 @@ async function multipleConceptRequest(data, params) {
 						message: entry.message
 					};
 				});
-
-			multiData.subqueryClusters = subqueryClusters;
-			multiData.status = {
+			const incompleteQueriesStatus = {
 				msg: `${subqueryStatus.length - incompleteQueries.length} query(s) passed, ${
 					incompleteQueries.length
 				} query(s) failed`,
 				incompleteQueries
 			};
+
+			multiData.subqueryClusters = subqueryClusters;
+			multiData.status = incompleteQueriesStatus;
 
 			const combinedSortedConceptResults = results
 				.filter((entry) => {
@@ -150,8 +151,19 @@ async function multipleConceptRequest(data, params) {
 
 			multiData.results = nonMatchingConceptsSortedTidyRankedClean;
 
+			console.log(nonMatchingConceptsSortedTidyRankedClean);
+
+			if (
+				nonMatchingConceptsSortedTidyRankedClean.best.length === 0 &&
+				nonMatchingConceptsSortedTidyRankedClean.other.length === 0
+			) {
+				return verboseData(verbose, multiData, {
+					incomplete: incompleteQueriesStatus
+				});
+			}
+
 			return verboseData(verbose, multiData, {
-				concepts: resultConcepts
+				concepts: nonMatchingConceptsSortedTidyRankedClean
 			});
 		})
 		.catch((error) => {
