@@ -189,8 +189,8 @@ async function singleConceptRequest(data, conceptName, params) {
 
 	// Find concept in list
 	// -----
-	const foundConcept = objectHelper.getFirstMatching(conceptClusterList, 'name', conceptName);
-	if (foundConcept === null) {
+	const foundConcept = objectHelper.getMatching(conceptClusterList, 'name', conceptName)[0];
+	if (foundConcept === null || foundConcept === undefined) {
 		const nonCompletionMsg = 'No concept found with that name, please check the spelling';
 		resultReturn.status = statusObj(0, conceptName, nonCompletionMsg);
 		return resultReturn;

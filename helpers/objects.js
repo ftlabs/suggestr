@@ -4,18 +4,6 @@ function getMatching(arrayOfObjs, matchProperty, matchValue) {
 	});
 }
 
-function getFirstMatching(arrayOfObjs, matchProperty, matchValue) {
-	const matchingItems = arrayOfObjs.filter((entry) => {
-		return entry[matchProperty] === matchValue ? entry : null;
-	});
-
-	if (matchingItems.length <= 0) {
-		return null;
-	}
-
-	return matchingItems[0];
-}
-
 function doubleSort(arrayOfObjs, sortProperty1, sortProperty2) {
 	return arrayOfObjs.sort(function(object1, object2) {
 		if (object1[sortProperty1] > object2[sortProperty1]) return -1;
@@ -39,7 +27,6 @@ function uniqueArrayOfObjects(arrayOfObjs, unique_name) {
 
 module.exports = {
 	getMatching,
-	getFirstMatching,
 	doubleSort,
 	uniqueArrayOfObjects
 };
