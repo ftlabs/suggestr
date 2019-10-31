@@ -151,8 +151,6 @@ async function multipleConceptRequest(data, params) {
 
 			multiData.results = nonMatchingConceptsSortedTidyRankedClean;
 
-			console.log(nonMatchingConceptsSortedTidyRankedClean);
-
 			if (
 				nonMatchingConceptsSortedTidyRankedClean.best.length === 0 &&
 				nonMatchingConceptsSortedTidyRankedClean.other.length === 0
