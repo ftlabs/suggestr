@@ -3,7 +3,7 @@ const arrayHelper = require('../helpers/arrays');
 const objectHelper = require('../helpers/objects');
 
 const returnDataTemplate = {
-	descripton: '',
+	description: '',
 	summary: '',
 	searchType: '',
 	searchParams: {},
@@ -16,8 +16,8 @@ async function concepts(params) {
 	const data = { ...returnDataTemplate };
 	data.searchParams = params;
 	data.searchType = `${params.type} search`;
-	data.descripton =
-		'Provides concept suggestions, type of concept specified in searchType, based on the provided concept(s). Each provided concept is used to search for concepts that are not correlated with it, but still exist in the same cluster, and suggest those concepts as best fit. A query with multiple concepts to search for breaks the query down into seperate searches - only joining together at the end of the process for ranking.';
+	data.description =
+		'Provides concept suggestions, type of concept specified in searchType, based on the provided concept(s). Each provided concept is used to search for concepts that are not correlated with it, but still exist in the same cluster, and suggest those concepts as best fit. A query with multiple concepts to search for breaks the query down into separate searches - only joining together at the end of the process for ranking.';
 	data.summary =
 		'An explaination on how the concepts are suggested is located in this repositieds readme (https://github.com/ftlabs/suggestr). Any questions? Please contact myself or ftlabs@ft.com';
 	return await multipleConceptRequest(data, params);
@@ -29,7 +29,7 @@ async function multipleConceptRequest(data, params) {
 
 	if (!concepts) {
 		multiData.error = 'Concepts query parameter not defined, please provide concept(s) to begin a search';
-		return verboseData(verbose, data, { error: multiData.error });
+		return verboseData(verbose, data, { status: multiData.error });
 	}
 
 	const conceptPromises = concepts.map((concept) => {
@@ -58,27 +58,29 @@ async function multipleConceptRequest(data, params) {
 			});
 
 			const subqueryStatus = results.map((entry) => entry.status);
-			const incompleteQueries = subqueryStatus
+			const noResultQueries = subqueryStatus
 				.filter((entry) => {
-					if (entry.completion == 'failed') {
+					if (entry.completion == 'noresults') {
 						return entry;
 					}
 				})
 				.map((entry) => {
 					return {
 						name: entry.name,
+						type: params.type,
 						message: entry.message
 					};
 				});
-			const incompleteQueriesStatus = {
-				msg: `${subqueryStatus.length - incompleteQueries.length} query(s) passed, ${
-					incompleteQueries.length
-				} query(s) failed`,
-				incompleteQueries
+			const noResultQueriesStatus = {
+				msg: `${subqueryStatus.length - noResultQueries.length} query(s) passed, ${
+					noResultQueries.length
+				} query(s) with no results`,
+				noResultQueries
 			};
 
 			multiData.subqueryClusters = subqueryClusters;
-			multiData.status = incompleteQueriesStatus;
+			multiData.numberOfResultsFailed = noResultQueries.length;
+			multiData.status = noResultQueriesStatus;
 
 			const combinedSortedConceptResults = results
 				.filter((entry) => {
@@ -156,17 +158,18 @@ async function multipleConceptRequest(data, params) {
 				nonMatchingConceptsSortedTidyRankedClean.other.length === 0
 			) {
 				return verboseData(verbose, multiData, {
-					incomplete: incompleteQueriesStatus
+					results: nonMatchingConceptsSortedTidyRankedClean,
+					status: noResultQueriesStatus
 				});
 			}
 
 			return verboseData(verbose, multiData, {
-				concepts: nonMatchingConceptsSortedTidyRankedClean
+				results: nonMatchingConceptsSortedTidyRankedClean
 			});
 		})
 		.catch((error) => {
-			multiData.error = error;
-			return verboseData(verbose, multiData, { error: multiData.error });
+			multiData.status = status;
+			return verboseData(verbose, multiData, { status: multiData.status });
 		});
 }
 
@@ -204,7 +207,7 @@ async function singleConceptRequest(data, conceptName, params) {
 		.filter((entry) => entry.name !== conceptName)
 		.map((entry) => entry.name);
 
-	// Find the remaining concpets that are not related at all
+	// Find the remaining concepts that are not related at all
 	// -----
 	const allCoocsList = allCoocs[`${type}:${conceptName}`];
 	const correlatedConcepts = Object.keys(allCoocsList).map((entry) => entry.replace(`${type}:`, ''));
@@ -265,7 +268,7 @@ function statusObj(completion, name, message = '') {
 			break;
 		case 0:
 		default:
-			completionMsg = 'failed';
+			completionMsg = 'noresults';
 	}
 	return { completion: completionMsg, name, message };
 }
