@@ -4,7 +4,6 @@ const objectHelper = require('../helpers/objects');
 
 const returnDataTemplate = {
 	description: '',
-	summary: '',
 	searchType: '',
 	searchParams: {},
 	status: {},
@@ -15,11 +14,19 @@ const returnDataTemplate = {
 async function concepts(params) {
 	const data = { ...returnDataTemplate };
 	data.searchParams = params;
-	data.searchType = `${params.type} search`;
-	data.description =
-		'Provides concept suggestions, type of concept specified in searchType, based on the provided concept(s). Each provided concept is used to search for concepts that are not correlated with it, but still exist in the same cluster, and suggest those concepts as best fit. A query with multiple concepts to search for breaks the query down into separate searches - only joining together at the end of the process for ranking.';
-	data.summary =
-		'An explaination on how the concepts are suggested is located in this repositieds readme (https://github.com/ftlabs/suggestr). Any questions? Please contact myself or ftlabs@ft.com';
+	data.searchType   = `${params.type} search`;
+	data.description  = `This API provides concept suggestions based on correlations found in MyFT Follows data, where we have clustered concepts followed by similar sets of people.
+For each concept specified in the request, 'concepts=concept1,concept2,concept3', we look for other concepts in the same cluster which do not overlap, i.e. do not share any articles. The rationale is that the clusters represent groups of concepts of general interest to the same sets of people,
+but there is no point suggesting concepts they will already have seen in articles via their current follows.
+The non-overlapping concepts are sorted according to how 'sticky' they are, i.e. with the best follow/unfollow ratio.
+If multiple concepts are specified in the request, we look for the intersection of non-overlapping concepts (if in the same cluster), or the union (if from different clusters).
+Any such fully non-overlapping concepts are listed in 'results.best', with any partially non-overlapping ones listed in 'results.other'.
+If 'verbose=true', additional response fields list details of how the suggestions were constructed.
+The searchType field specifies which subset of concepts to focus on - any of 'topics, people, organisations'.
+The field 'clusterSelection' specifies which cluster count to use, any of '3,5,10,20'.
+See the readme for a more detailed explanation of the suggestion algorithm (https://github.com/ftlabs/suggestr).
+Any questions? Please contact FT Labs team.
+`;
 	return await multipleConceptRequest(data, params);
 }
 
