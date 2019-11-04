@@ -168,7 +168,7 @@ async function multipleConceptRequest(data, params) {
 			});
 		})
 		.catch((error) => {
-			multiData.status = status;
+			multiData.status = error;
 			return verboseData(verbose, multiData, { status: multiData.status });
 		});
 }
