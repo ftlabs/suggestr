@@ -14,8 +14,8 @@ const returnDataTemplate = {
 async function concepts(params) {
 	const data = { ...returnDataTemplate };
 	data.searchParams = params;
-	data.searchType   = `${params.type} search`;
-	data.description  = `This API provides concept suggestions based on correlations found in MyFT Follows data, where we have clustered concepts followed by similar sets of people.
+	data.searchType = `${params.type} search`;
+	data.description = `This API provides concept suggestions based on correlations found in MyFT Follows data, where we have clustered concepts followed by similar sets of people.
 For each concept specified in the request, 'concepts=concept1,concept2,concept3', we look for other concepts in the same cluster which do not overlap, i.e. do not share any articles. The rationale is that the clusters represent groups of concepts of general interest to the same sets of people,
 but there is no point suggesting concepts they will already have seen in articles via their current follows.
 The non-overlapping concepts are sorted according to how 'sticky' they are, i.e. with the best follow/unfollow ratio.
@@ -65,7 +65,7 @@ async function multipleConceptRequest(data, params) {
 			});
 
 			const subqueryStatus = results.map((entry) => entry.status);
-			const noResultQueries = subqueryStatus
+			const unrecognisedConcepts = subqueryStatus
 				.filter((entry) => {
 					if (entry.completion == 'noresults') {
 						return entry;
@@ -78,16 +78,16 @@ async function multipleConceptRequest(data, params) {
 						message: entry.message
 					};
 				});
-			const noResultQueriesStatus = {
-				msg: `${subqueryStatus.length - noResultQueries.length} query(s) passed, ${
-					noResultQueries.length
+			const unrecognisedConceptsStatus = {
+				msg: `${subqueryStatus.length - unrecognisedConcepts.length} query(s) passed, ${
+					unrecognisedConcepts.length
 				} query(s) with no results`,
-				noResultQueries
+				unrecognisedConcepts
 			};
 
 			multiData.subqueryClusters = subqueryClusters;
-			multiData.numberOfResultsFailed = noResultQueries.length;
-			multiData.status = noResultQueriesStatus;
+			multiData.numberOfResultsFailed = unrecognisedConcepts.length;
+			multiData.status = unrecognisedConceptsStatus;
 
 			const combinedSortedConceptResults = results
 				.filter((entry) => {
@@ -166,7 +166,7 @@ async function multipleConceptRequest(data, params) {
 			) {
 				return verboseData(verbose, multiData, {
 					results: nonMatchingConceptsSortedTidyRankedClean,
-					status: noResultQueriesStatus
+					status: unrecognisedConceptsStatus
 				});
 			}
 
@@ -264,6 +264,9 @@ async function singleConceptRequest(data, conceptName, params) {
 }
 
 function verboseData(verbose, data, replacement) {
+	const { description, searchParams } = data;
+	replacement.description = description;
+	replacement.searchParams = searchParams;
 	return verbose ? data : replacement;
 }
 

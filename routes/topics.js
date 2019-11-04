@@ -8,7 +8,7 @@ const defaults = {
 	concepts: '',
 	excludes: [],
 	type: 'topics',
-	verbosity: true
+	verbosity: false
 };
 
 router.get('/', async (req, res) => {
