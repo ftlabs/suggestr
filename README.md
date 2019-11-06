@@ -2,27 +2,7 @@
 
 A Follow based recommendation algorithm
 
-Using topic cluster analysis, topic correlations data and topic follow/unfollow ratios - can we suggest relevant topics to follow (or retirve articles) for based on any given topic(s)?
-
-## Todo tasks
-
--   Add cluster variation
-    -   Add parameters for using the 3, 5, 10 and 20 cluster versions
--   Use ‘non-overlapping’ rather than ‘non-matching’
--   Add description field to whole result, describe the process
--   Re-replace topic variables with concepts
--   Add summary for how these suggestions were suggested (good AI practice)
--   Add exclude lists
--   Show excludes to the result output
--   Add which clusters the multiples come from
--   More words in the error (which is also not an error)
--   More words in the reason why no suggestions we returned
-
-## Done
-
--   Add verbose parameter
-    -   return version for all results or nothing
--   Add git hub PR request template
+Using topic cluster analysis, topic correlations data and topic follow/unfollow ratios - can we suggest retrieve topics to follow (or retirve articles) for based on any given topic(s)?
 
 ## Setup
 
@@ -52,3 +32,44 @@ Using topic cluster analysis, topic correlations data and topic follow/unfollow 
 -   Compare the above two lists and identify the topics that do not appear in the correlated list
 -   Sort the discovered topics by their follow/unfollow ratio
 -   Return a list of sorted topics
+
+## Data conversion
+
+I've used the `csvtojson` npm module (installed globally) to convert the .csv files exported from the cluster analysis in R Studio.
+
+### How to convert a CSV to JSON
+
+-   `csvtojson data.csv > data.json`
+
+## Todo tasks
+
+-
+
+## Completed Todo tasks
+
+-   Add strength criteria to the returned topic results
+    -   [Multi] a topic that appears in all of the multi topic requests is a prime candidate
+        -   all others are lesser suggestions
+-   Test (and fix if required) multi-cluster requests
+    -   works but needs to report individual search failures
+-   Add which clusters the multiples come from
+-   More words in the error (which is also not an error)
+-   More words in the reason why no suggestions we returned
+-   Add summary for how these suggestions were suggested (good AI practice)(which should also go in the non verbose response)
+-   Add a URL builder from main page
+-   inconsistent naming of fields in single/multi topic responses
+-   Use ‘non-overlapping’ rather than ‘non-matching’
+-   duplication of code constructing responses for single/multi topic queries. e.g. I had to edit two different bits of code to make the one change (to add a description field).
+-   Re-replace topic variables with concepts
+-   Add description field to whole result, describe the process
+    -   Put Labs contact address in the description
+-   Add cluster variation
+    -   Add parameters for using the 3, 5, 10 and 20 cluster versions
+-   Add verbose parameter
+    -   return version for all results or nothing
+-   Add git hub PR request template
+-   the field called 'variables' should probably have a different name, e.g. workings, or something, otherwise it looks like it should be a bunch of settings
+-   Add exclude lists
+-   Show excludes to the result output
+-   [bug] topic that appear in the search criteria should also be removed from the multi search results
+    -   remove at end of multi process, or when creating the single topic promises
