@@ -126,10 +126,10 @@ async function multipleConceptRequest(data, params) {
 			// -----
 			const nonMatchingConceptsSorted = objectHelper.doubleSort(uniqueArrayOfObjects, 'count', 'ratio');
 
-			// Remove any concepts on the exclude list
+			// Remove any concepts on the exclude list OR in the original multi concept search list
 			// -----
 			const nonMatchingConceptsSortedTidy = nonMatchingConceptsSorted.filter((entry) => {
-				if (!exclude.includes(entry.name)) {
+				if (!exclude.includes(entry.concept_name) && !concepts.includes(entry.concept_name)) {
 					return entry;
 				}
 			});
