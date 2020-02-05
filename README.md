@@ -19,11 +19,11 @@ Using topic cluster analysis, topic correlations data and topic follow/unfollow 
 ## Overview
 
 -   Get Topic from URL path
--   Get list of cluster Topics from S3
+-   Get list of cluster Topics from S3\*
     -   Data obtained through clustering algorithms with R
--   Get list of all correlated Topics
+-   Get list of all correlated Topics\*
     -   Data obtained through the [Correlation service](http://ftlabs-correlations-topics.herokuapp.com/allCoocs)
--   Get list of all Topic follow/unfollow ratios
+-   Get list of all Topic follow/unfollow ratios\*
     -   Data obtained through analysing user follow/unfollow data with R
 -   Check if Topic searched exists in clusters
     -   If not, error out
@@ -32,6 +32,8 @@ Using topic cluster analysis, topic correlations data and topic follow/unfollow 
 -   Compare the above two lists and identify the topics that do not appear in the correlated list
 -   Sort the discovered topics by their follow/unfollow ratio
 -   Return a list of sorted topics
+
+\*An example backup of the data is located in the project folder, for Labs reference
 
 ## Data conversion
 
