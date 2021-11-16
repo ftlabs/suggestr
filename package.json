@@ -24,7 +24,7 @@
 	"dependencies": {
 		"@financial-times/s3o-middleware": "^2.1.1",
 		"assert": "^1.5.0",
-		"aws-sdk": "^2.605.0",
+		"aws-sdk": "^2.814.0",
 		"body-parser": "^1.19.0",
 		"chai": "^4.1.2",
 		"chai-http": "^4.3.0",
